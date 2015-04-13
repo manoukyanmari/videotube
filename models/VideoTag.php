@@ -50,7 +50,7 @@ class VideoTag extends \yii\db\ActiveRecord
      */
     public function getVideo()
     {
-        return $this->hasOne(Videos::className(), ['id' => 'video_id']);
+        return $this->hasOne(Video::className(), ['id' => 'video_id']);
     }
 
     /**
@@ -58,6 +58,6 @@ class VideoTag extends \yii\db\ActiveRecord
      */
     public function getTag()
     {
-        return $this->hasOne(Tags::className(), ['id' => 'tag_id']);
+        return $this->hasOne(Tag::className(), ['id' => 'tag_id']);
     }
 }

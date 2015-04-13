@@ -59,9 +59,9 @@ class Video extends \yii\db\ActiveRecord
     /**
      * @return \yii\db\ActiveQuery
      */
-    public function getImages()
+    public function getImage()
     {
-        return $this->hasMany(Images::className(), ['video_id' => 'id']);
+        return $this->hasMany(Image::className(), ['video_id' => 'id']);
     }
 
     /**
@@ -78,9 +78,25 @@ class Video extends \yii\db\ActiveRecord
         $tags= array_merge([0 => ""], ArrayHelper::map($data, 'id','name'));
         return $tags;
     }
-    public function getStringTags(){
-        $data = Tag::find()->asArray()->all();
+    public function getStringTags($videoId = null){
+        $data = array();
+//        var_dump($videoId);
+//        exit;
+        if($videoId) {
+            $relations = VideoTag::find()->where(['video_id' => $videoId])->with('tag')->asArray()->all();
+
+            foreach($relations as $relation) {
+                $data[] = [
+                    'id' => $relation['tag']['id'],
+                    'name' => $relation['tag']['name']
+                ];
+            }
+        }
+        else {
+            $data = Tag::find()->asArray()->all();
+        }
         $tags= ArrayHelper::map($data, 'id','name');
         return implode(',', $tags);
+
     }
 }

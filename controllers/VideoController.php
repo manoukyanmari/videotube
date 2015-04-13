@@ -3,14 +3,18 @@
 namespace app\controllers;
 
 use app\models\Tag;
+use app\models\UploadForm;
 use app\models\VideoTag;
+use Faker\Provider\Image;
 use Yii;
 use app\models\VIdeo;
 use app\models\VideoSearch;
+use yii\base\Security;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
 use yii\filters\AccessControl;
+use yii\web\UploadedFile;
 
 /**
  * VideoController implements the CRUD actions for VIdeo model.
@@ -79,13 +83,13 @@ class VideoController extends Controller
     public function actionCreate()
     {
 
-        $model = new VIdeo();
+        $model = new Video();
+        $image = new \app\models\Image();
+        $uploadForm = new UploadForm();
         $model->created = date('Y-m-d H:i:s');
         $model->updated = date('Y-m-d H:i:s');
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
             $tags = explode(',', Yii::$app->request->post('tags'));
-
-            $videoTags = [];
 
             if(count($tags)){
                 foreach($tags as $tag) {
@@ -103,10 +107,27 @@ class VideoController extends Controller
                 }
             }
 
+            $uploadForm->file = UploadedFile::getInstances($uploadForm, 'file');
+
+            if ($uploadForm->file && $uploadForm->validate()) {
+
+                foreach ($uploadForm->file as $file) {
+                    $path = 'uploads/' . Yii::$app->getSecurity()->generateRandomString() .  '.' . $file->extension;
+                    $file->saveAs($path);
+
+                    $image = new \app\models\Image();
+                    $image->path = $path;
+                    $image->video_id = $model->id;
+                    $image->save();
+                }
+            }
+
             return $this->redirect(['view', 'id' => $model->id]);
         } else {
             return $this->render('create', [
                 'model' => $model,
+                'image' => $image,
+                'upload' => $uploadForm
             ]);
         }
 
@@ -121,12 +142,53 @@ class VideoController extends Controller
     public function actionUpdate($id)
     {
         $model = $this->findModel($id);
+
+        $image = new \app\models\Image();
+        $uploadForm = new UploadForm();
+
         $model->updated = date('Y-m-d H:i:s');
+
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
+            $tags = explode(',', Yii::$app->request->post('tags'));
+
+            if(count($tags)){
+                foreach($tags as $tag) {
+                    $foundTag =  Tag::find()->where(['name' => $tag])->one();
+                    if($foundTag == null) {
+                        $foundTag = new Tag();
+                        $foundTag->name = $tag;
+                        $foundTag->save();
+                    }
+
+                    $videoTagRelation = new VideoTag();
+                    $videoTagRelation->video_id = $model->id;
+                    $videoTagRelation->tag_id = $foundTag->id;
+                    $videoTagRelation->save();
+                }
+            }
+
+            $uploadForm->file = UploadedFile::getInstances($uploadForm, 'file');
+
+            if ($uploadForm->file && $uploadForm->validate()) {
+
+                foreach ($uploadForm->file as $file) {
+                    $path = 'uploads/' . Yii::$app->getSecurity()->generateRandomString() .  '.' . $file->extension;
+                    $file->saveAs($path);
+
+                    $image = new \app\models\Image();
+                    $image->path = $path;
+                    $image->video_id = $model->id;
+                    $image->save();
+                }
+            }
+
             return $this->redirect(['view', 'id' => $model->id]);
+
         } else {
             return $this->render('update', [
                 'model' => $model,
+                'image' => $image,
+                'upload' => $uploadForm
             ]);
         }
     }
